@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>守れ！防衛ライン(仮)</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section class="title-screen" id="titleScreen" aria-label="タイトル画面">
+      <div class="title-overlay">
+        <h1><span>守れ！防衛ライン(仮)</span></h1>
+        <div class="title-menu" aria-label="メニュー">
+          <button class="title-button primary" id="newGameButton" type="button">はじめから</button>
+          <button class="title-button" id="continueButton" type="button">つづきから</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="app-shell is-hidden" id="gameShell">
+
+      <main class="game-layout">
+        <aside class="commander-card">
+          <div class="lineup-art" role="img" aria-label="六人の防衛メンバー"></div>
+          <div class="commander-status">
+            <div>
+              <span>防衛目標</span>
+              <strong>村の入り口を守る</strong>
+            </div>
+            <div>
+              <span>配置可能</span>
+              <strong>左4列</strong>
+            </div>
+          </div>
+        </aside>
+
+        <section class="battle-card" aria-label="バトル画面">
+          <div class="battle-hud">
+            <div class="stat-pill"><span>STAGE</span><strong id="stageText">1/4</strong></div>
+            <div class="stat-pill"><span>WAVE</span><strong id="waveText">1/1</strong></div>
+            <div class="stat-pill life"><span>ライフ</span><strong id="lifeText">10</strong></div>
+            <div class="stat-pill cost"><span>コスト</span><strong id="costText">20/60</strong></div>
+            <button class="hud-button primary" id="startButton" type="button">出撃開始</button>
+            <button class="hud-button" id="speedButton" type="button">×1</button>
+            <button class="hud-button icon" id="pauseButton" type="button" aria-label="一時停止">Ⅱ</button>
+            <button class="hud-button icon" id="resetButton" type="button" aria-label="リセット">↻</button>
+          </div>
+
+          <div class="board-frame">
+            <div class="battle-board" id="board">
+              <div class="lane-labels" aria-hidden="true">
+                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+              </div>
+              <div class="column-labels" aria-hidden="true">
+                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+              </div>
+              <div class="grid-layer" id="gridLayer"></div>
+              <div class="range-layer" id="rangeLayer"></div>
+              <div class="entity-layer" id="entityLayer"></div>
+              <div class="effect-layer" id="effectLayer"></div>
+              <div class="route-arrow" aria-hidden="true"></div>
+            </div>
+          </div>
+
+          <div class="lower-dock">
+            <section class="unit-panel">
+              <div class="section-title">
+                <span>ユニット選択</span>
+                <strong id="selectedText">にゃんみちゃん選択中</strong>
+              </div>
+              <div class="unit-roster" id="unitRoster"></div>
+            </section>
+
+          </div>
+        </section>
+
+        <aside class="tactics-card">
+          <div class="tactics-block">
+            <h2 id="stageTitle">戦況</h2>
+            <p class="stage-guide" id="stageGuide"></p>
+            <div class="enemy-meter">
+              <span>残り敵数</span>
+              <strong id="enemyText">0</strong>
+            </div>
+            <div class="goal-meter">
+              <span>防衛ライン</span>
+              <i id="goalBar"></i>
+            </div>
+          </div>
+
+          <div class="log-panel" id="logPanel" aria-live="polite"></div>
+        </aside>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="story-overlay" id="storyOverlay" role="dialog" aria-modal="true" aria-labelledby="storyTitle">
+      <article class="story-card">
+        <div class="story-visual">
+          <img id="storyImage" alt="" />
+        </div>
+        <div class="story-copy">
+          <span class="story-kicker" id="storyKicker">EPISODE</span>
+          <h2 id="storyTitle"></h2>
+          <div class="story-body" id="storyBody"></div>
+          <div class="story-progress" id="storyProgress"></div>
+          <div class="story-actions">
+            <button class="hud-button" id="storyPrevButton" type="button">前へ</button>
+            <button class="hud-button" id="storySkipButton" type="button">スキップ</button>
+            <button class="hud-button primary" id="storyNextButton" type="button">次へ</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
