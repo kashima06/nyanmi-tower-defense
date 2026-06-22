@@ -36,6 +36,10 @@
     strong6: { src: "assets/enemy-strong-cutout.png", index: 6, columns: 4, rows: 2 },
     strong7: { src: "assets/enemy-strong-cutout.png", index: 7, columns: 4, rows: 2 }
   };
+  const RESULT_POP_IMAGES = {
+    success: "assets/result-defense-success.png",
+    fail: "assets/result-defense-fail.png"
+  };
 
   const unitDefs = [
     {
@@ -48,6 +52,7 @@
       interval: 0.82,
       range: 0.6,
       shape: "around",
+      circleRadius: 1.5,
       color: "#f15648",
       portrait: 0,
       projectile: "slash",
@@ -64,7 +69,9 @@
       heal: 200,
       canAttack: false,
       interval: 1.65,
-      range: 3.0,
+      range: 2.0,
+      healRange: 2,
+      healShape: "cross",
       color: "#ff86cc",
       portrait: 1,
       projectile: "heal",
@@ -519,6 +526,7 @@
     stageGuide: document.getElementById("stageGuide"),
     logPanel: document.getElementById("logPanel"),
     toast: document.getElementById("toast"),
+    resultPop: document.getElementById("resultPop"),
     startButton: document.getElementById("startButton"),
     speedButton: document.getElementById("speedButton"),
     pauseButton: document.getElementById("pauseButton"),
@@ -538,6 +546,7 @@
   let idCounter = 0;
   let lastFrame = performance.now();
   let toastTimer = 0;
+  let resultPopDismiss = null;
   let activeStory = null;
 
   const state = {
@@ -597,6 +606,32 @@
     toastTimer = setTimeout(() => {
       els.toast.classList.remove("is-visible");
     }, 1600);
+  }
+
+  function hideResultPop(runDismiss = true) {
+    const onDismiss = resultPopDismiss;
+    resultPopDismiss = null;
+    els.resultPop.className = "result-pop";
+    els.resultPop.removeAttribute("aria-label");
+    els.resultPop.textContent = "";
+    if (runDismiss && onDismiss) onDismiss();
+  }
+
+  function showResultPop(message, type, onDismiss = null) {
+    hideResultPop(false);
+    resultPopDismiss = onDismiss;
+    const card = document.createElement("div");
+    card.className = "result-pop__card";
+    const image = document.createElement("img");
+    image.className = "result-pop__image";
+    image.src = RESULT_POP_IMAGES[type];
+    image.alt = message;
+    card.appendChild(image);
+    els.resultPop.appendChild(card);
+    els.resultPop.setAttribute("aria-label", `${message}。クリックで閉じます。`);
+    void els.resultPop.offsetWidth;
+    els.resultPop.className = `result-pop is-visible is-${type}`;
+    els.resultPop.focus({ preventScroll: true });
   }
 
   function getStorySequence(kind, stageIndex) {
@@ -994,7 +1029,7 @@
       if (unit.cooldown > 0) continue;
 
       if (def.heal) {
-        const ally = findWoundedAlly(unit, def.range);
+        const ally = findWoundedAlly(unit, def);
         if (ally) {
           healUnit(unit, ally, def.heal);
           unit.cooldown = def.interval;
@@ -1021,11 +1056,25 @@
     unit.attackDuration = duration;
   }
 
-  function findWoundedAlly(unit, range) {
+  function findWoundedAlly(unit, def) {
     return getUnits()
       .filter((ally) => ally.hp < ally.maxHp)
-      .filter((ally) => distance(unit.col + 0.5, unit.row + 0.5, ally.col + 0.5, ally.row + 0.5) <= range)
+      .filter((ally) => isInHealRange(unit, def, ally))
       .sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+  }
+
+  function isInHealRange(source, def, ally) {
+    const range = def.healRange ?? def.range;
+    if (def.healShape === "cross") {
+      const colDistance = Math.abs(ally.col - source.col);
+      const rowDistance = Math.abs(ally.row - source.row);
+      return (
+        (colDistance === 0 && rowDistance <= range) ||
+        (rowDistance === 0 && colDistance <= range)
+      );
+    }
+
+    return distance(source.col + 0.5, source.row + 0.5, ally.col + 0.5, ally.row + 0.5) <= range;
   }
 
   function healUnit(source, target, amount) {
@@ -1066,7 +1115,7 @@
     const uy = unit.row + 0.5;
 
     if (def.shape === "around") {
-      return Math.max(Math.abs(ex - ux), Math.abs(ey - uy)) <= 1.15;
+      return distance(ux, uy, ex, ey) <= (def.circleRadius || 1.5);
     }
 
     if (def.shape === "frontBox") {
@@ -1266,6 +1315,7 @@
       state.gameOver = true;
       state.running = false;
       log("防衛ラインが突破されました");
+      showResultPop("防衛失敗・・・", "fail");
       showToast("敗北。再挑戦で編成し直せます");
       return;
     }
@@ -1277,7 +1327,13 @@
         state.victory = true;
         state.running = false;
         state.campaignCleared = state.stageIndex >= stageDefs.length - 1;
+        const completedStageIndex = state.stageIndex;
         log(`${currentStage().name} クリア`);
+        showResultPop("防衛成功♬", "success", () => {
+          if (state.victory && state.stageIndex === completedStageIndex) {
+            openStory("post", completedStageIndex);
+          }
+        });
         if (state.campaignCleared) {
           showToast("全ステージクリア！防衛ラインを守り切りました");
           saveGameState();
@@ -1285,7 +1341,6 @@
           showToast(`${currentStage().name} クリア！次のステージへ進めます`);
           saveStageStart(state.stageIndex + 1);
         }
-        openStory("post", state.stageIndex);
       } else {
         state.intermission = 2.2;
         state.maxCost += 18;
@@ -1456,10 +1511,11 @@
     const top = (topCell / ROWS) * 100;
     const width = (widthCells / COLS) * 100;
     const height = (heightCells / ROWS) * 100;
+    const shapeClass = preview.shape ? ` is-${preview.shape}` : "";
 
     return `
       <div
-        class="range-preview"
+        class="range-preview${shapeClass}"
         style="--left:${left}%;--top:${top}%;--width:${width}%;--height:${height}%;--unit-color:${def.color}"
       >
         <span>${htmlEscape(def.name)} ${htmlEscape(preview.label)}</span>
@@ -1468,16 +1524,28 @@
   }
 
   function getRangePreviewRect(unit, def) {
+    if (def.healShape === "cross") {
+      const range = def.healRange ?? def.range;
+      return {
+        left: unit.col - range,
+        top: unit.row - range,
+        width: range * 2 + 1,
+        height: range * 2 + 1,
+        shape: "cross",
+        label: `十字${range}マス`
+      };
+    }
+
     if (def.shape === "around") {
-      const left = clamp(unit.col - 1, 0, COLS);
-      const top = clamp(unit.row - 1, 0, ROWS);
-      const right = clamp(unit.col + 2, 0, COLS);
-      const bottom = clamp(unit.row + 2, 0, ROWS);
+      const radius = def.circleRadius || 1.5;
+      const left = unit.col + 0.5 - radius;
+      const top = unit.row + 0.5 - radius;
       return {
         left,
         top,
-        width: right - left,
-        height: bottom - top,
+        width: radius * 2,
+        height: radius * 2,
+        shape: "circle",
         label: "周囲1マス"
       };
     }
@@ -1549,6 +1617,7 @@
 
     if (def.id === "pastel") {
       for (const ally of getUnits()) {
+        if (!isInHealRange(unit, def, ally)) continue;
         ally.hp = clamp(ally.hp + 1500, 0, ally.maxHp);
         addEffect(ally.col + 0.5, ally.row + 0.5, "+1500", "#9dff9f");
       }
@@ -1593,6 +1662,7 @@
   }
 
   function resetGame(stageIndex = state.stageIndex) {
+    hideResultPop(false);
     state.stageIndex = clamp(stageIndex, 0, stageDefs.length - 1);
     const stage = currentStage();
     state.selectedUnit = stage.allowedUnits[0];
@@ -1809,6 +1879,18 @@
   els.storyPrevButton.addEventListener("click", () => moveStory(-1));
   els.storyNextButton.addEventListener("click", () => moveStory(1));
   els.storySkipButton.addEventListener("click", closeStory);
+  els.resultPop.addEventListener("click", () => {
+    if (els.resultPop.classList.contains("is-visible")) {
+      hideResultPop();
+    }
+  });
+  els.resultPop.addEventListener("keydown", (event) => {
+    if (!els.resultPop.classList.contains("is-visible")) return;
+    if (event.key === "Enter" || event.key === " " || event.key === "Escape") {
+      event.preventDefault();
+      hideResultPop();
+    }
+  });
   document.getElementById("board").addEventListener("pointermove", (event) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * COLS;
