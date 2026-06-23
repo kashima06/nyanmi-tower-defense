@@ -508,6 +508,7 @@
     gameShell: document.getElementById("gameShell"),
     newGameButton: document.getElementById("newGameButton"),
     continueButton: document.getElementById("continueButton"),
+    bgm: document.getElementById("bgm"),
     grid: document.getElementById("gridLayer"),
     range: document.getElementById("rangeLayer"),
     entities: document.getElementById("entityLayer"),
@@ -606,6 +607,20 @@
     toastTimer = setTimeout(() => {
       els.toast.classList.remove("is-visible");
     }, 1600);
+  }
+
+  function startBgm() {
+    if (!els.bgm) return;
+    els.bgm.volume = 0.45;
+    els.bgm.loop = true;
+    if (els.bgm.paused) {
+      const playPromise = els.bgm.play();
+      if (playPromise) {
+        playPromise.catch(() => {
+          showToast("音楽の再生がブラウザにブロックされました");
+        });
+      }
+    }
   }
 
   function hideResultPop(runDismiss = true) {
@@ -1851,12 +1866,14 @@
 
   els.startButton.addEventListener("click", startButtonAction);
   els.newGameButton.addEventListener("click", () => {
+    startBgm();
     clearSavedGame();
     resetGame(0);
     enterGameScreen();
     openStory("pre", 0);
   });
   els.continueButton.addEventListener("click", () => {
+    startBgm();
     const loaded = loadSavedGame();
     if (!loaded) {
       resetGame();
