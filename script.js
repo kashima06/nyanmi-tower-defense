@@ -80,7 +80,7 @@
     },
     {
       id: "yami",
-      name: "闇にゃみ",
+      name: "闇にゃんみ",
       className: "遊撃手",
       cost: 11,
       hp: 3400,
@@ -96,7 +96,7 @@
     },
     {
       id: "lunaria",
-      name: "リア",
+      name: "ようへいB",
       className: "魔法使い",
       cost: 16,
       hp: 2950,
@@ -130,7 +130,7 @@
     },
     {
       id: "riku",
-      name: "リク",
+      name: "ようへいA",
       className: "戦士",
       cost: 14,
       hp: 4700,
@@ -280,7 +280,7 @@
     },
     {
       id: 4,
-      name: "第4ステージ ギャンブリア防衛戦",
+      name: "第4ステージ みんなで防衛戦",
       guide: "全ユニット解放。これまでの役割を組み合わせて、3WAVEの総力戦を守り切ろう。",
       allowedUnits: unitDefs.map((unit) => unit.id),
       initialCost: 20,
